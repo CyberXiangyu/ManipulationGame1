@@ -1,0 +1,99 @@
+{
+  "schema_version": "blind_preference_pairs_v1",
+  "layout": "side_by_side_single_file",
+  "option_1": "left half of the frame",
+  "option_2": "right half of the frame",
+  "pair_count": 9,
+  "pairs": [
+    {
+      "pair_id": "pair_001",
+      "index": 1,
+      "seed": "1",
+      "duration_s": 13.7,
+      "video": {
+        "A": "set_A/pair_001.mp4",
+        "B": "set_B/pair_001.mp4"
+      }
+    },
+    {
+      "pair_id": "pair_002",
+      "index": 2,
+      "seed": "1",
+      "duration_s": 12.6,
+      "video": {
+        "A": "set_A/pair_002.mp4",
+        "B": "set_B/pair_002.mp4"
+      }
+    },
+    {
+      "pair_id": "pair_003",
+      "index": 3,
+      "seed": "1",
+      "duration_s": 13.7,
+      "video": {
+        "A": "set_A/pair_003.mp4",
+        "B": "set_B/pair_003.mp4"
+      }
+    },
+    {
+      "pair_id": "pair_004",
+      "index": 4,
+      "seed": "3",
+      "duration_s": 29.3,
+      "video": {
+        "A": "set_A/pair_004.mp4",
+        "B": "set_B/pair_004.mp4"
+      }
+    },
+    {
+      "pair_id": "pair_005",
+      "index": 5,
+      "seed": "3",
+      "duration_s": 29.35,
+      "video": {
+        "A": "set_A/pair_005.mp4",
+        "B": "set_B/pair_005.mp4"
+      }
+    },
+    {
+      "pair_id": "pair_006",
+      "index": 6,
+      "seed": "3",
+      "duration_s": 29.35,
+      "video": {
+        "A": "set_A/pair_006.mp4",
+        "B": "set_B/pair_006.mp4"
+      }
+    },
+    {
+      "pair_id": "pair_007",
+      "index": 7,
+      "seed": "6",
+      "duration_s": 18.05,
+      "video": {
+        "A": "set_A/pair_007.mp4",
+        "B": "set_B/pair_007.mp4"
+      }
+    },
+    {
+      "pair_id": "pair_008",
+      "index": 8,
+      "seed": "6",
+      "duration_s": 18.05,
+      "video": {
+        "A": "set_A/pair_008.mp4",
+        "B": "set_B/pair_008.mp4"
+      }
+    },
+    {
+      "pair_id": "pair_009",
+      "index": 9,
+      "seed": "6",
+      "duration_s": 17.9,
+      "video": {
+        "A": "set_A/pair_009.mp4",
+        "B": "set_B/pair_009.mp4"
+      }
+    }
+  ]
+}

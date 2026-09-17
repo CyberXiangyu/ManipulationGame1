@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Blinded preference review</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>
+        <strong id="study-title">Blinded preference review</strong>
+        <small id="study-subtitle"></small>
+      </span>
+    </div>
+    <div class="topbar-right">
+      <div id="session-badges" class="badges" hidden>
+        <span class="badge" id="badge-reviewer">&mdash;</span>
+        <span class="badge badge-set" id="badge-set">&mdash;</span>
+        <span class="badge badge-save" id="badge-save">Saved</span>
+      </div>
+      <button type="button" class="btn btn-ghost" id="btn-quick-backup" hidden>
+        Save backup
+      </button>
+      <button type="button" class="btn btn-ghost" id="btn-exit" hidden>Switch reviewer</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- 1. Reviewer setup                                                   -->
+<!-- ------------------------------------------------------------------ -->
+<section id="screen-setup" class="screen">
+  <div class="wrap wrap-narrow">
+
+    <div class="callout callout-warn" role="note">
+      <h2>Before you begin</h2>
+      <p>
+        This is a <strong>blinded</strong> study. Until you have submitted all of
+        your judgments, please do <strong>not</strong> look at:
+      </p>
+      <ul>
+        <li>strategy, controller or method names of any kind;</li>
+        <li>annotated, labelled or diagnostic versions of these videos;</li>
+        <li>performance metrics, score tables, success rates or result files;</li>
+        <li>any file describing which option corresponds to which method.</li>
+      </ul>
+      <p class="muted">
+        Knowing any of this makes your judgments unusable. If you see such
+        information by accident, stop and tell the study coordinator rather than
+        continuing.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Reviewer setup</h2>
+      <p class="muted">
+        Enter the anonymous reviewer ID you were given. Do not enter your name,
+        email or any other identifying detail.
+      </p>
+
+      <form id="setup-form" autocomplete="off" novalidate>
+        <label class="field">
+          <span class="field-label">Anonymous reviewer ID</span>
+          <input type="text" id="reviewer-id" name="reviewer-id"
+                 placeholder="R001" maxlength="32" spellcheck="false"
+                 autocapitalize="characters" required>
+          <span class="field-hint" id="reviewer-id-hint">
+            Letters, digits, dot, dash or underscore. Example: R001
+          </span>
+        </label>
+
+        <div class="assignment" id="assignment-preview" hidden>
+          <div class="assignment-set">
+            <span class="assignment-label">Assigned video set</span>
+            <span class="assignment-value" id="assignment-value">&mdash;</span>
+          </div>
+          <p class="assignment-note" id="assignment-note"></p>
+        </div>
+
+        <div id="resume-box" class="resume" hidden>
+          <strong>A saved session exists for this ID.</strong>
+          <span id="resume-detail" class="muted"></span>
+          <span class="resume-actions">
+            <button type="button" class="btn btn-small" id="btn-resume">Resume it</button>
+            <button type="button" class="btn btn-small btn-danger-ghost" id="btn-discard">
+              Discard and start over
+            </button>
+          </span>
+        </div>
+
+        <details class="instructions">
+          <summary>Study instructions &mdash; please read once before starting</summary>
+          <ol>
+            <li>
+              You will see <strong id="instr-pair-count">9</strong> comparison
+              videos. Each shows two robot behaviours performing the same task
+              from the same starting state, side by side.
+              <strong>Option&nbsp;1 is the left video; Option&nbsp;2 is the right
+              video.</strong>
+            </li>
+            <li>
+              Watch each video all the way through before answering. The answer
+              form stays locked until playback has covered the whole clip. You may
+              replay it as often as you like, and change playback speed.
+            </li>
+            <li>
+              Judge each pair <strong>three times</strong>, once under each
+              evaluation context: balanced, safety priority, and efficiency
+              priority. The contexts are independent — a pair may legitimately
+              come out differently under each one.
+            </li>
+            <li>
+              For every judgment give a preference, a confidence rating, at least
+              one reason, and the task stage that most influenced you. A short
+              written observation is welcome.
+            </li>
+            <li>
+              Choose <strong>Tie</strong> when the two behaviours are
+              approximately equally desirable. Choose
+              <strong>Incomparable</strong> when each has important advantages
+              and no defensible overall ranking exists — these are different
+              answers, so please do not use one for the other.
+            </li>
+            <li>
+              Answers save automatically in this browser as you go. You can leave
+              and come back with the same reviewer ID on the same browser. Export
+              a backup file if you need to move to another machine.
+            </li>
+            <li>
+              Judge only what you can see in the video. There is no hidden ground
+              truth you are supposed to recover, and there is no expected answer.
+            </li>
+          </ol>
+        </details>
+
+        <label class="check-inline">
+          <input type="checkbox" id="ack-blinding">
+          <span>
+            I have read the instructions and I will not look up strategy names,
+            annotated videos or performance metrics until I have finished.
+          </span>
+        </label>
+
+        <div class="setup-actions">
+          <button type="submit" class="btn btn-primary" id="btn-begin" disabled>
+            Begin review
+          </button>
+          <button type="button" class="btn btn-ghost" id="btn-import">
+            Restore from backup file
+          </button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden>
+        </div>
+        <p class="form-error" id="setup-error" role="alert" hidden></p>
+      </form>
+    </div>
+
+    <p class="storage-warning" id="storage-warning" hidden>
+      This browser is blocking local storage, so answers cannot be saved
+      automatically. Export a JSON backup regularly, or switch to a normal
+      (non-private) browser window.
+    </p>
+  </div>
+</section>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- 2. Review                                                           -->
+<!-- ------------------------------------------------------------------ -->
+<section id="screen-review" class="screen" hidden>
+  <div class="wrap">
+
+    <div class="progress-rail">
+      <div class="progress-head">
+        <div>
+          <span class="progress-count"><strong id="progress-done">0</strong>
+            of <strong id="progress-total">27</strong> judgments complete</span>
+          <span class="progress-remaining muted" id="progress-remaining"></span>
+        </div>
+        <button type="button" class="btn btn-small" id="btn-goto-finish">
+          Review &amp; submit
+        </button>
+      </div>
+      <div class="progress-bar"><span id="progress-fill"></span></div>
+      <ol class="pair-chips" id="pair-chips" aria-label="Jump to pair"></ol>
+    </div>
+
+    <div class="pair-header">
+      <h2 id="pair-title">Pair 1 of 9</h2>
+      <span class="pair-meta muted" id="pair-meta"></span>
+    </div>
+
+    <div class="stage-card">
+      <div class="option-banner">
+        <div class="option-banner-half">
+          <span class="option-tag">Option 1</span>
+          <span class="option-where">left video</span>
+        </div>
+        <div class="option-banner-half">
+          <span class="option-tag">Option 2</span>
+          <span class="option-where">right video</span>
+        </div>
+      </div>
+
+      <div class="video-frame">
+        <video id="video" playsinline preload="metadata"
+               aria-label="Side by side comparison video"></video>
+        <div class="video-divider" aria-hidden="true"></div>
+        <p class="video-error" id="video-error" hidden></p>
+      </div>
+
+      <div class="transport">
+        <button type="button" class="btn btn-transport" id="btn-playpause">Play</button>
+        <button type="button" class="btn btn-transport" id="btn-replay">Replay</button>
+        <input type="range" id="seek" min="0" max="100" step="0.1" value="0"
+               aria-label="Seek">
+        <div class="seek-track" aria-hidden="true"><span id="seek-fill"></span></div>
+        <span class="time-display" id="time-display">0:00 / 0:00</span>
+        <div class="rates" id="rates" role="group" aria-label="Playback speed"></div>
+      </div>
+
+      <div class="watch-status" id="watch-status">
+        <div class="coverage" id="coverage" aria-hidden="true"></div>
+        <span class="watch-text" id="watch-text">Not yet watched</span>
+        <button type="button" class="btn btn-small btn-ghost" id="btn-watch-override"
+                title="Only for when the video will not play correctly" hidden>
+          Video not playing? Unlock questions
+        </button>
+      </div>
+    </div>
+
+    <div class="contexts-card">
+      <div class="tabs" id="context-tabs" role="tablist"
+           aria-label="Evaluation context"></div>
+      <div id="context-panels"></div>
+    </div>
+
+    <nav class="pair-nav">
+      <button type="button" class="btn" id="btn-prev">&larr; Previous pair</button>
+      <span class="pair-nav-status muted" id="pair-nav-status"></span>
+      <button type="button" class="btn" id="btn-next">Next pair &rarr;</button>
+    </nav>
+
+    <details class="shortcuts">
+      <summary>Keyboard shortcuts</summary>
+      <ul>
+        <li><kbd>Space</kbd> play / pause</li>
+        <li><kbd>R</kbd> replay from the start</li>
+        <li><kbd>&larr;</kbd> / <kbd>&rarr;</kbd> step back / forward two seconds</li>
+        <li><kbd>[</kbd> / <kbd>]</kbd> previous / next pair</li>
+      </ul>
+      <p class="muted">Shortcuts pause while you are typing in a text box.</p>
+    </details>
+  </div>
+</section>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- 3. Submit and export                                                -->
+<!-- ------------------------------------------------------------------ -->
+<section id="screen-finish" class="screen" hidden>
+  <div class="wrap wrap-narrow">
+    <div class="card">
+      <h2>Review and submit</h2>
+      <p class="muted" id="finish-summary"></p>
+
+      <div id="finish-outstanding" class="outstanding" hidden>
+        <h3>Still outstanding</h3>
+        <ul id="outstanding-list"></ul>
+      </div>
+
+      <div id="finish-ready" class="callout callout-ok" hidden>
+        <strong>All judgments are complete.</strong>
+        <p>
+          Submitting marks the session finished and downloads your data. Please
+          send both files to the study coordinator.
+        </p>
+      </div>
+
+      <div class="finish-actions">
+        <button type="button" class="btn btn-primary" id="btn-submit" disabled>
+          Submit and export CSV
+        </button>
+        <button type="button" class="btn" id="btn-export-json" disabled>
+          Export JSON backup
+        </button>
+        <button type="button" class="btn btn-ghost" id="btn-back-to-review">
+          Back to review
+        </button>
+      </div>
+
+      <p class="submitted-note" id="submitted-note" hidden></p>
+
+      <details class="instructions">
+        <summary>What gets exported</summary>
+        <p>
+          The CSV holds one row per pair and evaluation context, with reviewer ID,
+          pair ID, assigned set, context, preference, confidence, reason codes,
+          pivotal stage, written explanation and date. The JSON backup holds the
+          same data plus your playback record, and can be loaded back into this
+          page on another machine.
+        </p>
+        <p class="muted">
+          Neither file contains any strategy name or mapping — the page never has
+          access to one.
+        </p>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span id="footer-note">Blinded pairwise preference collection &mdash; responses stay in this browser until you export them.</span>
+  </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/pairs.js"></script>
+<script src="js/schema.js"></script>
+<script src="js/assignment.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/player.js"></script>
+<script src="js/export.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

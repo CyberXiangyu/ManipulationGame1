@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""Build the blind pair manifest used by the review webpage.
+
+Reads a review_pairs directory laid out as::
+
+    <source>/set_A/pair_001.mp4 ... pair_00N.mp4
+    <source>/set_B/pair_001.mp4 ... pair_00N.mp4
+
+and writes two equivalent files:
+
+    data/pairs.json  -- for analysis tooling
+    js/pairs.js      -- same payload as a global, so index.html also works
+                        from a file:// URL with no web server
+
+BLINDING: only pair_id, seed, duration and file names are emitted. Controller
+names, metrics and the option -> algorithm mapping are never read by this
+script and must never be added to its output.
+
+Seeds are optional. They are read from a CSV with pair_id,seed columns (for
+example the preference label template) via --seed-csv; without it the seed
+field is left empty and the page simply omits it.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+PAIR_RE = re.compile(r"^pair_(\d+)\.mp4$")
+SETS = ("A", "B")
+
+
+def probe_duration(path: Path) -> float | None:
+    """Return the container duration in seconds, or None if ffprobe is absent."""
+    try:
+        out = subprocess.run(
+            [
+                "ffprobe", "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(path),
+            ],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        return round(float(out), 3)
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return None
+
+
+def read_seeds(csv_path: Path) -> dict[str, str]:
+    seeds: dict[str, str] = {}
+    with csv_path.open(newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            pair_id = (row.get("pair_id") or "").strip()
+            seed = (row.get("seed") or "").strip()
+            if pair_id and seed:
+                seeds.setdefault(pair_id, seed)
+    return seeds
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--source", default="videos",
+                    help="directory holding set_A/ and set_B/ (default: videos)")
+    ap.add_argument("--seed-csv", default=None,
+                    help="optional CSV with pair_id,seed columns")
+    ap.add_argument("--out-json", default="data/pairs.json")
+    ap.add_argument("--out-js", default="js/pairs.js")
+    args = ap.parse_args()
+
+    root = Path(__file__).resolve().parent.parent
+    source = (root / args.source) if not Path(args.source).is_absolute() else Path(args.source)
+
+    per_set: dict[str, dict[str, Path]] = {}
+    for set_id in SETS:
+        set_dir = source / f"set_{set_id}"
+        if not set_dir.is_dir():
+            print(f"error: missing directory {set_dir}", file=sys.stderr)
+            return 1
+        found = {}
+        for path in sorted(set_dir.glob("*.mp4")):
+            m = PAIR_RE.match(path.name)
+            if m:
+                found[f"pair_{int(m.group(1)):03d}"] = path
+        if not found:
+            print(f"error: no pair_*.mp4 files in {set_dir}", file=sys.stderr)
+            return 1
+        per_set[set_id] = found
+
+    ids_a, ids_b = set(per_set["A"]), set(per_set["B"])
+    if ids_a != ids_b:
+        print(f"error: set_A and set_B disagree on pair ids: "
+              f"only in A={sorted(ids_a - ids_b)} only in B={sorted(ids_b - ids_a)}",
+              file=sys.stderr)
+        return 1
+
+    seeds = read_seeds(Path(args.seed_csv)) if args.seed_csv else {}
+
+    pairs = []
+    for index, pair_id in enumerate(sorted(ids_a), start=1):
+        durations = {s: probe_duration(per_set[s][pair_id]) for s in SETS}
+        known = [d for d in durations.values() if d]
+        if len(known) == 2 and abs(known[0] - known[1]) > 0.5:
+            print(f"warning: {pair_id} durations differ between sets: {durations}",
+                  file=sys.stderr)
+        pairs.append({
+            "pair_id": pair_id,
+            "index": index,
+            "seed": seeds.get(pair_id, ""),
+            "duration_s": known[0] if known else None,
+            "video": {s: f"set_{s}/{per_set[s][pair_id].name}" for s in SETS},
+        })
+
+    payload = {
+        "schema_version": "blind_preference_pairs_v1",
+        "layout": "side_by_side_single_file",
+        "option_1": "left half of the frame",
+        "option_2": "right half of the frame",
+        "pair_count": len(pairs),
+        "pairs": pairs,
+    }
+
+    out_json = root / args.out_json
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+    out_json.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    out_js = root / args.out_js
+    out_js.parent.mkdir(parents=True, exist_ok=True)
+    out_js.write_text(
+        "/* Generated by scripts/make_pairs_manifest.py -- do not edit by hand.\n"
+        "   Loaded as a plain script so the page works from file:// too. */\n"
+        "window.REVIEW_PAIRS = " + json.dumps(payload, indent=2) + ";\n",
+        encoding="utf-8",
+    )
+
+    print(f"wrote {out_json.relative_to(root)} and {out_js.relative_to(root)} "
+          f"({len(pairs)} pairs)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
